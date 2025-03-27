@@ -128,7 +128,7 @@ def insert_hint(q, r, model_p = 1.0):
     if strategy == "model":
         client = OpenAI(
             base_url="https://api.deepinfra.com/v1/openai",
-            api_key=random.choices([DEEP_INFRA_API_KEY,DEEP_INFRA_API_KEY_2, DEEP_INFRA_API_KEY_3], weights=[1/3,1/3, 1/3], k = 1)[0]
+            api_key=random.choices([DEEP_INFRA_API_KEY_2, DEEP_INFRA_API_KEY_3], weights=[1/2,1/2], k = 1)[0]
         )
         
         max_tokens = 50
@@ -298,3 +298,31 @@ def get_code_completion(problem, partial_response, max_tokens = 2048, stop_token
         stop = stop_tokens_list
     )
     return chat_completion_res.choices[0].text
+
+def add_jsons(json_paths_list):
+    first_json_data = read_json_1(json_paths_list[0])
+    
+    qs = {}
+    for item in first_json_data:
+        qs[item["q"]] = (item["r"], item["a"]) 
+    
+    for json_path in json_paths_list[1:]:
+        iter_data = read_json_1(json_path)
+        for item in iter_data:
+            if item["q"] in qs:
+                if len(item["r"]) < len(qs[item["q"]][0]):
+                    qs[item["q"]] = (item["r"], item["a"])
+            else:
+                qs[item["q"]] = (item["r"], item["a"])
+
+    final_data = []
+    for q in list(qs.keys()):
+        item = {}
+        item["q"] = q
+        item["r"] = qs[q][0]
+        item["a"] = qs[q][1]
+        final_data.append(item)
+    name = "mix_test.json"
+    print(f"final mix length: {len(final_data)}")
+    with open(name, "w") as f:
+        json.dump(final_data, f , indent = 4)
