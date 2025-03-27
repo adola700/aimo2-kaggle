@@ -30,6 +30,9 @@ Guidelines for Hint Placement:
 Initial Thinking Phase:
 Do not insert hints in the first 2000–3000 tokens (let the model reason independently first).
 
+If Code Already present:
+If code is already present, place hints after output of the previous code, place hints before the already present code only if you think it is optimal.
+
 Hint Selection Criteria:
 Use "complex calculations hint" for math-heavy steps (e.g., solving equations, expanding expressions).
 Use "self reflection hint" when it is optimal to double-checks its reasoning.
