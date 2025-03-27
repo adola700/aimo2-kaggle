@@ -128,7 +128,7 @@ def insert_hint(q, r, model_p = 1.0):
     if strategy == "model":
         client = OpenAI(
             base_url="https://api.deepinfra.com/v1/openai",
-            api_key=DEEP_INFRA_API_KEY,
+            api_key=random.choices([DEEP_INFRA_API_KEY,DEEP_INFRA_API_KEY_2, DEEP_INFRA_API_KEY_3], weights=[1/3,1/3, 1/3], k = 1)[0]
         )
         
         max_tokens = 50
@@ -210,7 +210,7 @@ def verify_correctness(gen_answer, actual_answer):
     from openai import OpenAI
     client = OpenAI(
         base_url="https://conductor.arcee.ai/v1",
-        api_key=CONDUCTOR_API_KEY,
+        api_key=random.choices([CONDUCTOR_API_KEY, CONDUCTOR_API_KEY_2], weights = [0.5, 0.5], k = 1)[0]
     )
 
     # client = OpenAI(
@@ -237,7 +237,7 @@ def get_answer(solution):
     from openai import OpenAI
     client = OpenAI(
         base_url="https://conductor.arcee.ai/v1",
-        api_key=CONDUCTOR_API_KEY,
+        api_key=random.choices([CONDUCTOR_API_KEY, CONDUCTOR_API_KEY_2], weights = [0.5, 0.5], k = 1)[0]
     )
     # client = OpenAI(
     #     base_url="http://localhost:8000/v1",
