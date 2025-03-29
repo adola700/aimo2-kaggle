@@ -46,7 +46,7 @@ def parallelize(fn, *args):
                 results[index] = future.result()
             except Exception as e:
                 results[index] = str(e)
-                print("api error occured!")
+                print(str(e))
     return results
 # ---------------------------------------------------------------------
 # REGEX FUNCTIONS
@@ -57,7 +57,6 @@ def return_wrongs_df_only_aime_format(df, output_column = "outputs", answer_colu
     df_deep_copy["gen_answers"] = answers
     df_deep_copy["answer"] = df_deep_copy["answer"].apply(lambda x: str(x))
     return df_deep_copy[~(df_deep_copy["answer"] == df_deep_copy["gen_answers"])].reset_index(drop = True)
-    
 
 def get_length(text):
     return len(tok(text, add_special_tokens = False)["input_ids"])
@@ -153,8 +152,9 @@ def insert_hint(q, r, model_p = 0.0):
         elif lines_count == 2:
             line_number = 2
         else:    
-            line_number, hint_idx = get_random_sample(lines_count), random.choices([0,1,2,3,4,5])[0]
-        hint_type = list(HINTS.values())[hint_idx]
+            line_number,  = get_random_sample(lines_count), 
+        hint_idx = random.choices([0,1,2,3,4,5])[0]
+        hint_type = list(HINTS.keys())[hint_idx]
 
     return get_truncated_from_line_number(r, line_number, hint_type)
 # ------------------------------------------------------------------------
@@ -262,7 +262,7 @@ def get_extra_completion(problem, partial_response, max_tokens = 8192, stop_toke
         api_key="None"
     )
     
-    model = "casperhansen/deepseek-r1-distill-qwen-7b-awq"
+    model = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
     max_tokens = max_tokens
     
     chat_completion_res = client.completions.create(
@@ -284,7 +284,7 @@ def get_code_completion(problem, partial_response, max_tokens = 2048, stop_token
         api_key="None",
     )
     
-    model = "casperhansen/deepseek-r1-distill-qwen-7b-awq"
+    model = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
     max_tokens = max_tokens
     
     chat_completion_res = client.completions.create(
