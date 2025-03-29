@@ -74,7 +74,7 @@ def extract_and_number_lines(text, get_count=False):
     result = []
     count = 1
     for line in lines:
-        if line.startswith(("Wait", "Alternatively", "But","Now", "Therefore", "So", "Hmm")):
+        if line.startswith(("Wait", "Alternatively", "But","Now")):
             result.append(f"{count}. {line}")
             count += 1
         else:
@@ -89,7 +89,7 @@ def get_truncated_from_line_number(r, line_number, hint_type):
     result = []
     count = 1
     for line in lines:
-        if line.startswith(("Wait", "Alternatively", "But","Now", "Therefore", "So", "Hmm")):
+        if line.startswith(("Wait", "Alternatively", "But","Now")):
             if count == line_number:
                 return "\n\n".join(result) + "\n\n" + HINTS[hint_type]
             result.append(f"{line}")  
@@ -122,7 +122,7 @@ def get_random_sample(n):
         if 1 <= point <= n:
             return point
 
-def insert_hint(q, r, model_p = 1.0):
+def insert_hint(q, r, model_p = 0.0):
     full_prompt = get_full_prompt_to_place_hints(q, r)
     strategy = random.choices(["model", "random"], weights=[model_p, 1 - model_p], k = 1)[0]
     if strategy == "model":
@@ -147,10 +147,9 @@ def insert_hint(q, r, model_p = 1.0):
     else:
         _, lines_count = extract_and_number_lines(r, True)
         if lines_count == 0:
-            return "|Time waste|"
+            return None
         if lines_count == 1:
-            line_number = 1
-        
+            return None
         elif lines_count == 2:
             line_number = 2
         else:    
@@ -210,7 +209,7 @@ def verify_correctness(gen_answer, actual_answer):
     from openai import OpenAI
     client = OpenAI(
         base_url="https://conductor.arcee.ai/v1",
-        api_key=random.choices([CONDUCTOR_API_KEY, CONDUCTOR_API_KEY_2], weights = [0.5, 0.5], k = 1)[0]
+        api_key=random.choices([CONDUCTOR_API_KEY, CONDUCTOR_API_KEY_2, CONDUCTOR_API_KEY_3])[0]
     )
 
     # client = OpenAI(
@@ -237,7 +236,7 @@ def get_answer(solution):
     from openai import OpenAI
     client = OpenAI(
         base_url="https://conductor.arcee.ai/v1",
-        api_key=random.choices([CONDUCTOR_API_KEY, CONDUCTOR_API_KEY_2], weights = [0.5, 0.5], k = 1)[0]
+        api_key=random.choices([CONDUCTOR_API_KEY, CONDUCTOR_API_KEY_2, CONDUCTOR_API_KEY_3])[0]
     )
     # client = OpenAI(
     #     base_url="http://localhost:8000/v1",
