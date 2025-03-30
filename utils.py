@@ -110,6 +110,7 @@ def extract_between_braces(input_string):
     return None
 
 def get_random_sample(n):
+    if n < 2: return n
     import numpy as np
 
     mean = (n + 1) / 2
@@ -118,8 +119,9 @@ def get_random_sample(n):
     # Keep sampling until a valid point in [1, n] is obtained.
     while True:
         point = int(np.round(np.random.normal(mean, sigma)))
-        if 1 <= point <= n:
+        if int(0.1*n) <= point <= n:
             return point
+
 
 def insert_hint(q, r, model_p = 0.0):
     full_prompt = get_full_prompt_to_place_hints(q, r)
@@ -207,9 +209,13 @@ def extract_python_code(input_str):
 def verify_correctness(gen_answer, actual_answer):
 #     print("running")
     from openai import OpenAI
+    # client = OpenAI(
+    #     base_url="https://conductor.arcee.ai/v1",
+    #     api_key=random.choices([CONDUCTOR_API_KEY, CONDUCTOR_API_KEY_2, CONDUCTOR_API_KEY_3])[0]
+    # )
     client = OpenAI(
-        base_url="https://conductor.arcee.ai/v1",
-        api_key=random.choices([CONDUCTOR_API_KEY, CONDUCTOR_API_KEY_2, CONDUCTOR_API_KEY_3])[0]
+        base_url="https://api.deepinfra.com/v1/openai",
+        api_key=random.choices([DEEP_INFRA_API_KEY,DEEP_INFRA_API_KEY_2, DEEP_INFRA_API_KEY_3], weights=[1/3,1/3, 1/3], k = 1)[0]
     )
 
     # client = OpenAI(
@@ -217,10 +223,10 @@ def verify_correctness(gen_answer, actual_answer):
     #     api_key="None",
     # )
     
-    max_tokens = 10
+    max_tokens = 4
     chat_completion_res = client.chat.completions.create(
-        # model="stelterlab/Mistral-Small-24B-Instruct-2501-AWQ",
-        model="virtuoso-large",
+        model="mistralai/Mistral-Small-24B-Instruct-2501",
+        # model="virtuoso-large",
         messages= [{"role": "user","content": VERIFY_CORRECTNESS_PROMPT + "Answer1: " + str(gen_answer) + "\nAnswer2: " + str(actual_answer)}],
         stream=False,
         max_tokens=max_tokens,
