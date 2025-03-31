@@ -33,7 +33,7 @@ def parallelize(fn, *args):
         raise ValueError("All input lists must have the same length.")
 
     results = [None] * n
-    with concurrent.futures.ThreadPoolExecutor(max_workers=200) as executor:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=1000) as executor:
         # Submit each job with the corresponding elements from all lists.
         future_to_index = {
             executor.submit(fn, *[arg[i] for arg in args]): i
@@ -110,18 +110,12 @@ def extract_between_braces(input_string):
     return None
 
 def get_random_sample(n):
-    if n < 2: return n
+    if n < 2: 
+        return n
     import numpy as np
 
-    mean = (n + 1) / 2
-    sigma = (n - 1) / 6  # About 3 sigma covers almost the whole range [1, n]
-    
-    # Keep sampling until a valid point in [1, n] is obtained.
-    while True:
-        point = int(np.round(np.random.normal(mean, sigma)))
-        if int(0.1*n) <= point <= n:
-            return point
-
+    # Generate a random integer uniformly between 3n/4 and n (inclusive)
+    return np.random.randint(int(0.1*n), n)
 
 def insert_hint(q, r, model_p = 0.0):
     full_prompt = get_full_prompt_to_place_hints(q, r)
@@ -161,34 +155,12 @@ def insert_hint(q, r, model_p = 0.0):
     return get_truncated_from_line_number(r, line_number, hint_type)
 # ------------------------------------------------------------------------
 def extract_boxed_texts(text):
-    # Search for either "\boxed{" or "oxed{" in the text.
-    # Adjust the pattern as needed if you have other variants to capture.
-    pattern = r'(\\boxed\{|oxed\{)'
-    match = re.search(pattern, text)
-    if not match:
-        return None
-
-    # Start parsing right after the matched sequence.
-    i = match.end()
-    depth = 1
-    content = []
-
-    while i < len(text) and depth > 0:
-        char = text[i]
-        if char == '{':
-            depth += 1
-        elif char == '}':
-            depth -= 1
-            if depth == 0:
-                i += 1
-                break
-        content.append(char)
-        i += 1
-
-    if depth != 0:
-        return None
-
-    return ''.join(content)
+    text = text.strip("\n")
+    pattern = r'\\boxed{((?:[^{}]|{[^{}]*})+)}'
+    matches = re.findall(pattern, text)
+    if not matches:
+        return -1000
+    return matches[-1]
 
 def extract_before_token(input_str, token_string):
     # Find the position of "</think>"
@@ -207,34 +179,52 @@ def extract_python_code(input_str):
     return matches[-1]
 # ---------------------------------------------------------------------
 def verify_correctness(gen_answer, actual_answer):
-#     print("running")
+    choice = random.choices([0,1])[0]
     from openai import OpenAI
-    # client = OpenAI(
-    #     base_url="https://conductor.arcee.ai/v1",
-    #     api_key=random.choices([CONDUCTOR_API_KEY, CONDUCTOR_API_KEY_2, CONDUCTOR_API_KEY_3])[0]
-    # )
-    client = OpenAI(
-        base_url="https://api.deepinfra.com/v1/openai",
-        api_key=random.choices([DEEP_INFRA_API_KEY,DEEP_INFRA_API_KEY_2, DEEP_INFRA_API_KEY_3], weights=[1/3,1/3, 1/3], k = 1)[0]
-    )
-
-    # client = OpenAI(
-    #     base_url="http://localhost:8000/v1",
-    #     api_key="None",
-    # )
     
-    max_tokens = 4
-    chat_completion_res = client.chat.completions.create(
-        model="mistralai/Mistral-Small-24B-Instruct-2501",
-        # model="virtuoso-large",
-        messages= [{"role": "user","content": VERIFY_CORRECTNESS_PROMPT + "Answer1: " + str(gen_answer) + "\nAnswer2: " + str(actual_answer)}],
-        stream=False,
-        max_tokens=max_tokens,
-        temperature=0.0,
-    )
-    # print(chat_completion_res.choices[0].message.content)
-    return chat_completion_res.choices[0].message.content
-
+#     print("running")
+    if choice == 0:
+            # client = OpenAI(
+            #     base_url="https://conductor.arcee.ai/v1",
+            #     api_key=random.choices([CONDUCTOR_API_KEY, CONDUCTOR_API_KEY_2, CONDUCTOR_API_KEY_3])[0]
+            # )
+            client = OpenAI(
+                base_url="https://api.deepinfra.com/v1/openai",
+                api_key=random.choices([DEEP_INFRA_API_KEY,DEEP_INFRA_API_KEY_2, DEEP_INFRA_API_KEY_3], weights=[1/3,1/3, 1/3], k = 1)[0]
+            )
+        
+            # client = OpenAI(
+            #     base_url="http://localhost:8000/v1",
+            #     api_key="None",
+            # )
+            
+            max_tokens = 4
+            chat_completion_res = client.chat.completions.create(
+                model="mistralai/Mistral-Small-24B-Instruct-2501",
+                # model="virtuoso-large",
+                messages= [{"role": "user","content": VERIFY_CORRECTNESS_PROMPT + "Answer1: " + str(gen_answer) + "\nAnswer2: " + str(actual_answer)}],
+                stream=False,
+                max_tokens=4,
+                temperature=0.0,
+            )
+            # print(chat_completion_res.choices[0].message.content)
+            return chat_completion_res.choices[0].message.content
+    else:
+        client = OpenAI(
+            base_url="https://conductor.arcee.ai/v1",
+            api_key=random.choices([CONDUCTOR_API_KEY, CONDUCTOR_API_KEY_2, CONDUCTOR_API_KEY_3])[0]
+            )
+        chat_completion_res = client.chat.completions.create(
+                # model="mistralai/Mistral-Small-24B-Instruct-2501",
+                model="virtuoso-medium",
+                messages= [{"role": "user","content": VERIFY_CORRECTNESS_PROMPT + "Answer1: " + str(gen_answer) + "\nAnswer2: " + str(actual_answer)}],
+                stream=False,
+                max_tokens=4,
+                temperature=0.0,
+            )
+            # print(chat_completion_res.choices[0].message.content)
+        return chat_completion_res.choices[0].message.content
+        
 
 def get_answer(solution):
     solution = solution[-350:]
@@ -268,7 +258,7 @@ def get_extra_completion(problem, partial_response, max_tokens = 8192, stop_toke
         api_key="None"
     )
     
-    model = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+    model = "casperhansen/deepseek-r1-distill-qwen-7b-awq"
     max_tokens = max_tokens
     
     chat_completion_res = client.completions.create(
@@ -290,7 +280,7 @@ def get_code_completion(problem, partial_response, max_tokens = 2048, stop_token
         api_key="None",
     )
     
-    model = "deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+    model = "casperhansen/deepseek-r1-distill-qwen-7b-awq"
     max_tokens = max_tokens
     
     chat_completion_res = client.completions.create(
