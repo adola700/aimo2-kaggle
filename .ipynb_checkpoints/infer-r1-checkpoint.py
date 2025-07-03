@@ -1,10 +1,10 @@
 import argparse
 import os
 os.environ["HF_HUB_ENABLE_HF_TRANSFER"] = "1"
-os.environ["VLLM_USE_V1"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
 from transformers import set_seed
-set_seed(9999)
+set_seed(99)
 import gc
 import time
 import warnings
@@ -26,11 +26,12 @@ HfFolder.save_token("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")
 
 ################ Parse Arguments ################
 parser = argparse.ArgumentParser(description="Script for fine-tuning and inference with LLM.")
-parser.add_argument('--doc_name', type=str, default="references_50.csv", help="Path to the input CSV file.")
-parser.add_argument('--llm_model_pth', type=str, default='casperhansen/deepseek-r1-distill-qwen-7b-awq', help="Path or name of the LLM model.") 
+parser.add_argument('--doc_name', type=str, default="final_test_aimo2.csv", help="Path to the input CSV file.")
+# parser.add_argument('--llm_model_pth', type=str, default='akh99/DeepSeek-R1-Distill-Qwen-7B-AWQ-tok-norm', help="Path or name of the LLM model.")
+parser.add_argument('--llm_model_pth', type=str, default='casperhansen/deepseek-r1-distill-qwen-1.5b-awq', help="Path or name of the LLM model.")
 parser.add_argument('--num_gpus', type=int, default=torch.cuda.device_count(), help="Number of GPUs to use.")
-parser.add_argument('--max_model_len', type=int, default=8192 * 3 // 2, help="Maximum model length for token generation.")
-parser.add_argument('--batch_size', type=int, default=1, help="Batch size for inference.")
+parser.add_argument('--max_model_len', type=int, default=22000, help="Maximum model length for token generation.")
+parser.add_argument('--batch_size', type=int, default=10, help="Batch size for inference.")
 parser.add_argument('--reps', type=int, default=16, help="Batch size for inference.")
 parser.add_argument('--min_p', type=float, default=0.0, help="Minimum cumulative probability for nucleus sampling.")
 parser.add_argument('--top_p', type=float, default=0.95, help="Minimum cumulative probability for nucleus sampling.")
@@ -66,7 +67,9 @@ llm = LLM(
     max_model_len=max_model_len,         
     trust_remote_code=True,     
     tensor_parallel_size=num_gpus,      
-    gpu_memory_utilization=0.9, 
+    gpu_memory_utilization=0.97, 
+    # speculative_model = "akh99/DeepSeek-R1-Distill-Qwen-1.5B-tok-norm",
+    # num_speculative_tokens = 2,
 )
 
 tokenizer = llm.get_tokenizer()
@@ -86,7 +89,6 @@ def solve(problems, temperature=temperature, rep=reps):
         for i in range(rep):
             problems_list.append(problem)
 
-    instruction = "Please reason step by step, and put your final answer within \\boxed{}, after taking modulo 1000"
     list_of_messages = [
         [
             {"role": "system", "content": "Please think step-by-step and give final answer using \\boxed{}, after taking modulo 1000."},
@@ -125,6 +127,7 @@ def extract_boxed_texts(text):
     return matches[-1]        
     
 ################ Final inference ################
+df = df[60:70]
 from tqdm import tqdm
 start = 0
 end = len(df)
